@@ -12,18 +12,93 @@ import java.io.IOException;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        byte[] datBytes = getFileBytes(args[0]);
-        byte[] palBytes = getFileBytes(args[1]);
+        if ("dat".equals(args[0])) {
+            extractDat(args[1], args[2]);
+        } else if ("spr".equals(args[0])) {
+            extractSpr(args[1], args[2]);
+        } else if ("pal".equals(args[0])) {
+            printPalette(getFileBytes(args[1]));
+        }
+    }
 
-        printPalette(palBytes);
+    private static void extractDat(String datFilePath, String palFilePath) throws Exception {
+        byte[] datBytes = getFileBytes(datFilePath);
+        byte[] palBytes = getFileBytes(palFilePath);
 
         Rgb888Image image = readFile(datBytes, palBytes);
 
         BmpImage bmp = new BmpImage();
         bmp.image = image;
-        FileOutputStream out = new FileOutputStream(String.format("%s.bmp", args[0]));
+        FileOutputStream out = new FileOutputStream(String.format("%s.bmp", datFilePath));
         BmpWriter.write(out, bmp);
     }
+
+    private static byte[] extractSpr(String sprFilePath, String palFilePath) throws Exception {
+        byte[] sprBytes = getFileBytes(sprFilePath);
+        byte[] palBytes = getFileBytes(palFilePath);
+
+        int firstSprOffset = (sprBytes[0] << 4) & 0xFF;
+        int firstSprSizeX = (sprBytes[firstSprOffset + 1] | sprBytes[firstSprOffset]) & 0xFF;
+        int firstSprSizeY = (sprBytes[firstSprOffset + 3] | sprBytes[firstSprOffset + 2]) & 0xFF;
+        int numBytes = firstSprSizeX * firstSprSizeY * 100;
+        byte[] sprite = new byte[numBytes];
+
+        int i = firstSprSizeY;          // cx (size.y)
+        int j = firstSprOffset + 10;    // si (tracks position in original data)
+        int k = 0;                      // di (tracks position in new data)
+        int p = 4;                      // plane count (Mode X)
+        while (p > 0) {
+            while (i > 0) {
+                int b = sprBytes[j++];
+
+                if (b == 0) {
+                    k += 112;
+                    i--;
+                } else if (b > 0) {
+                    do {
+                        int reps = b;
+                        while (reps > 0) {      // rep movsb
+                            sprite[k++] = sprBytes[j++];
+                            reps--;
+                        }
+                        b = sprBytes[j++];
+                        b = ~b + 1;             // neg al
+                        if (b == 0) {
+                            break;
+                        }
+                        k += b;
+                        b = sprBytes[j++];
+                    } while (b != 0);
+
+                    k += 112;                   // byte is zero
+                    i--;
+                } else {
+                    b = ~b + 1;                 // neg al
+                    do {
+                        k += b;
+                        b = sprBytes[j++];
+                        int reps = b;
+                        while (reps > 0) {      // rep movsb
+                            sprite[k++] = sprBytes[j++];
+                            reps--;
+                        }
+                        b = sprBytes[j++];
+                        b = ~b + 1;             // neg al
+                    } while (b != 0);
+
+                    k += 112;                   // byte is zero
+                    i--;
+                }
+            }
+            i = firstSprSizeY;                  // another full loop of size.y
+            p--;                                // "select next plane"
+            k = 4 - p;                          // "next plane": set "write offset" for next plane
+        }
+
+        return sprite;
+    }
+
+
 
     private static byte[] getFileBytes(String inputFilePath) throws IOException {
         File inputFile = new File(inputFilePath);
