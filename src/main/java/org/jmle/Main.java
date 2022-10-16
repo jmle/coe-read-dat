@@ -25,7 +25,7 @@ public class Main {
         byte[] datBytes = getFileBytes(datFilePath);
         byte[] palBytes = getFileBytes(palFilePath);
 
-        Rgb888Image image = readFile(datBytes, palBytes);
+        Rgb888Image image = readDatFile(datBytes, palBytes);
 
         BmpImage bmp = new BmpImage();
         bmp.image = image;
@@ -33,14 +33,21 @@ public class Main {
         BmpWriter.write(out, bmp);
     }
 
-    private static byte[] extractSpr(String sprFilePath, String palFilePath) throws Exception {
+    private static void extractSpr(String sprFilePath, String palFilePath) throws Exception {
+        BmpImage bmp = new BmpImage();
+        bmp.image = createSprImage(sprFilePath, palFilePath);
+        FileOutputStream out = new FileOutputStream(String.format("%s.bmp", sprFilePath));
+        BmpWriter.write(out, bmp);
+    }
+
+    private static Rgb888Image createSprImage(String sprFilePath, String palFilePath) throws Exception {
         byte[] sprBytes = getFileBytes(sprFilePath);
         byte[] palBytes = getFileBytes(palFilePath);
 
         int firstSprOffset = (sprBytes[0] << 4) & 0xFF;
         int firstSprSizeX = (sprBytes[firstSprOffset + 1] | sprBytes[firstSprOffset]) & 0xFF;
         int firstSprSizeY = (sprBytes[firstSprOffset + 3] | sprBytes[firstSprOffset + 2]) & 0xFF;
-        int numBytes = firstSprSizeX * firstSprSizeY * 100;
+        int numBytes = firstSprSizeX * firstSprSizeY;
         byte[] sprite = new byte[numBytes];
 
         int i = firstSprSizeY;          // cx (size.y)
@@ -52,7 +59,7 @@ public class Main {
                 int b = sprBytes[j++];
 
                 if (b == 0) {
-                    k += 112;
+                    k += 4;
                     i--;
                 } else if (b > 0) {
                     do {
@@ -70,7 +77,7 @@ public class Main {
                         b = sprBytes[j++];
                     } while (b != 0);
 
-                    k += 112;                   // byte is zero
+                    k += 4;                     // byte is zero
                     i--;
                 } else {
                     b = ~b + 1;                 // neg al
@@ -86,7 +93,7 @@ public class Main {
                         b = ~b + 1;             // neg al
                     } while (b != 0);
 
-                    k += 112;                   // byte is zero
+                    k += 4;                     // byte is zero
                     i--;
                 }
             }
@@ -95,7 +102,14 @@ public class Main {
             k = 4 - p;                          // "next plane": set "write offset" for next plane
         }
 
-        return sprite;
+        BufferedRgb888Image image = new BufferedRgb888Image(firstSprSizeX, firstSprSizeY);
+        for (int y = 0; y < firstSprSizeY; y++) {
+            for (int x = 0; x < firstSprSizeX; x++) {
+                image.setRgb888Pixel(x, y, getColor(sprBytes[firstSprSizeX * y + x], palBytes));
+            }
+        }
+
+        return image;
     }
 
 
@@ -106,7 +120,7 @@ public class Main {
         return inputStream.readAllBytes();
     }
 
-    private static Rgb888Image readFile(byte[] datBytes, byte[] palBytes) throws Exception {
+    private static Rgb888Image readDatFile(byte[] datBytes, byte[] palBytes) throws Exception {
         BufferedRgb888Image image = new BufferedRgb888Image(320, 200);
         for (int y = 0; y < 200; y++) {
             for (int x = 0; x < 320; x++) {
