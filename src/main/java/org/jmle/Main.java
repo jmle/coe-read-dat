@@ -47,19 +47,20 @@ public class Main {
         int firstSprOffset = (sprBytes[0] << 4) & 0xFF;
         int firstSprSizeX = (sprBytes[firstSprOffset + 1] | sprBytes[firstSprOffset]) & 0xFF;
         int firstSprSizeY = (sprBytes[firstSprOffset + 3] | sprBytes[firstSprOffset + 2]) & 0xFF;
-        int numBytes = firstSprSizeX * firstSprSizeY;
+        int numBytes = firstSprSizeX * firstSprSizeY * 10;
         byte[] sprite = new byte[numBytes];
 
         int i = firstSprSizeY;          // cx (size.y)
         int j = firstSprOffset + 10;    // si (tracks position in original data)
         int k = 0;                      // di (tracks position in new data)
         int p = 4;                      // plane count (Mode X)
+        int offset = 16;
         while (p > 0) {
             while (i > 0) {
                 int b = sprBytes[j++];
 
-                if (b == 0) {
-                    k += 4;
+                if (b == 0) {                   // 0 == transparency
+                    k += offset;
                     i--;
                 } else if (b > 0) {
                     do {
@@ -77,7 +78,7 @@ public class Main {
                         b = sprBytes[j++];
                     } while (b != 0);
 
-                    k += 4;                     // byte is zero
+                    k += offset;                // byte is zero
                     i--;
                 } else {
                     b = ~b + 1;                 // neg al
@@ -93,7 +94,7 @@ public class Main {
                         b = ~b + 1;             // neg al
                     } while (b != 0);
 
-                    k += 4;                     // byte is zero
+                    k += offset;                // byte is zero
                     i--;
                 }
             }
@@ -105,7 +106,7 @@ public class Main {
         BufferedRgb888Image image = new BufferedRgb888Image(firstSprSizeX, firstSprSizeY);
         for (int y = 0; y < firstSprSizeY; y++) {
             for (int x = 0; x < firstSprSizeX; x++) {
-                image.setRgb888Pixel(x, y, getColor(sprBytes[firstSprSizeX * y + x], palBytes));
+                image.setRgb888Pixel(x, y, getColor(sprite[firstSprSizeX * y + x], palBytes));
             }
         }
 
@@ -160,7 +161,7 @@ public class Main {
             int r = palette[pi];
             int g = palette[pi + 1];
             int b = palette[pi + 2];
-            System.out.printf("\033[48;2;%d;%d;%dm%n", r, g, b);
+            System.out.printf("\033[0m%x\033[48;2;%d;%d;%dm%n", i, r, g, b);
         }
     }
 }
