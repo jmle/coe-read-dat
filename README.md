@@ -1,19 +1,19 @@
-Curse of Enchantia DAT utility
----
-This utility will create a BMP file out of a decompressed DAT file and its associated PAL (palette) file.
+##Curse of Enchantia image extraction utility
+This utility will create a BMP file out of a decompressed DAT file or a SPR file and their associated PAL (palette) file.
 
 DAT files are compressed with RNC (Rob Northern Compression). An utility to decompress this kind of files can be found [here](https://github.com/lab313ru/rnc_propack_source).
+
+The utility is also able to print a PAL file's colors into the terminal.
 
 ###Installation:
 `mvn clean install`
 
 ###Usage:
-`java -jar coe-read-dat.jar <uncompressed DAT file> <associated PAL file>`
+`java -jar coe-read-dat.jar [dat|spr|pal] <uncompressed DAT file|SPR file> <associated PAL file>`
 
 ###TODO
-- Add --output option
+- Complete sprites support
 - Add automatic unpacking of RNC-packed files
-- Add sprites support
 
 ##License
 [BMP-IO](https://github.com/nayuki/BMP-IO) is included in this software and distributed under the MIT license:
