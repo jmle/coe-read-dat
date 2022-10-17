@@ -56,7 +56,7 @@ public class Main {
         for (Integer sprOffset: offsets) {
             int sprWidth = (sprBytes[sprOffset + 1] | sprBytes[sprOffset]) & 0xFF;
             int sprHeight = (sprBytes[sprOffset + 3] | sprBytes[sprOffset + 2]) & 0xFF;
-            byte[][] planes = new byte[4][(sprWidth / 2) * sprHeight];         // horizontal shrink caused by mode X
+            byte[][] planes = new byte[4][(sprWidth / 4) * sprHeight];         // horizontal shrink caused by mode X
 
             int i = sprHeight;              // cx (size.y)
             int j = sprOffset + 10;         // si (tracks position in original data)
@@ -74,11 +74,7 @@ public class Main {
                         do {
                             int reps = b;
                             while (reps > 0) {      // rep movsb
-                                try {
-                                    plane[k++] = sprBytes[j++];
-                                } catch (ArrayIndexOutOfBoundsException e) {
-                                    System.out.println("jarl");
-                                }
+                                plane[k++] = sprBytes[j++];
                                 reps--;
                             }
                             b = sprBytes[j++];
@@ -99,11 +95,7 @@ public class Main {
                             b = sprBytes[j++];
                             int reps = b;
                             while (reps > 0) {      // rep movsb
-                                try {
-                                    plane[k++] = sprBytes[j++];
-                                } catch (ArrayIndexOutOfBoundsException e) {
-                                    System.out.println("jarl");
-                                }
+                                plane[k++] = sprBytes[j++];
                                 reps--;
                             }
                             b = sprBytes[j++];
