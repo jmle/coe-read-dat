@@ -54,9 +54,9 @@ public class Main {
 
         List<Integer> offsets = extractOffsets(sprBytes);
         for (Integer sprOffset: offsets) {
-            int sprWidth = (sprBytes[sprOffset + 1] | sprBytes[sprOffset]) & 0xFF;
-            int sprHeight = (sprBytes[sprOffset + 3] | sprBytes[sprOffset + 2]) & 0xFF;
-            byte[][] planes = new byte[4][(sprWidth / 4) * sprHeight];         // horizontal shrink caused by mode X
+            int sprWidth = (sprBytes[sprOffset + 1] | sprBytes[sprOffset]) & 0xFFFF;
+            int sprHeight = (sprBytes[sprOffset + 3] | sprBytes[sprOffset + 2]) & 0xFFFF;
+            byte[][] planes = new byte[4][(sprWidth / 2) * sprHeight];         // horizontal shrink caused by mode X
 
             int i = sprHeight;              // cx (size.y)
             int j = sprOffset + 10;         // si (tracks position in original data)
@@ -74,7 +74,11 @@ public class Main {
                         do {
                             int reps = b;
                             while (reps > 0) {      // rep movsb
-                                plane[k++] = sprBytes[j++];
+                                try {
+                                    plane[k++] = sprBytes[j++];
+                                } catch (Exception e) {
+                                    System.out.println("Jarlem");
+                                }
                                 reps--;
                             }
                             b = sprBytes[j++];
@@ -95,7 +99,11 @@ public class Main {
                             b = sprBytes[j++];
                             int reps = b;
                             while (reps > 0) {      // rep movsb
-                                plane[k++] = sprBytes[j++];
+                                try {
+                                    plane[k++] = sprBytes[j++];
+                                } catch (Exception e) {
+                                    System.out.println("Jarlem");
+                                }
                                 reps--;
                             }
                             b = sprBytes[j++];
@@ -128,11 +136,12 @@ public class Main {
     private static List<Integer> extractOffsets(byte[] sprBytes) {
         List<Integer> offsets = new ArrayList<>();
         int i = 0;
-        int j = (sprBytes[i] * 0x10) & 0xFFFFFF;
-        while (j != 0) {
+        int j = (((sprBytes[i] & 0xFF) << 4) | ((sprBytes[i + 1] & 0xFF) << 12)) & 0xFFFFFF;
+        int firstOffset = j;
+        while (j != 0 && i < firstOffset) {
             offsets.add(j);
             i += 2;
-            j = (sprBytes[i] * 0x10) & 0xFFFFFF;
+            j = (((sprBytes[i] & 0xFF) << 4) | ((sprBytes[i + 1] & 0xFF) << 12)) & 0xFFFFFF;
         }
         return offsets;
     }
