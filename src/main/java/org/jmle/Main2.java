@@ -44,14 +44,13 @@ public class Main2 {
         byte[] sprBytes = getFileBytes(sprFilePath);
         byte[] palBytes = getFileBytes(palFilePath);
 
-        int firstSprOffset = (sprBytes[0] << 4) & 0xFF;
-        int firstSprSizeX = (sprBytes[firstSprOffset + 1] | sprBytes[firstSprOffset]) & 0xFF;
-        int firstSprSizeY = (sprBytes[firstSprOffset + 3] | sprBytes[firstSprOffset + 2]) & 0xFF;
-        int numBytes = firstSprSizeX * firstSprSizeY;
-        byte[][] planes = new byte[4][(firstSprSizeX / 2) * firstSprSizeY];         // horizontal shrink caused by mode X
+        int sprOffset   = (sprBytes[0] << 4) & 0xFF;
+        int sprWidth    = (sprBytes[sprOffset + 1] | sprBytes[sprOffset]) & 0xFF;
+        int sprHeight   = (sprBytes[sprOffset + 3] | sprBytes[sprOffset + 2]) & 0xFF;
+        byte[][] planes = new byte[4][(sprWidth / 2) * sprHeight];         // horizontal shrink caused by mode X
 
-        int i = firstSprSizeY;          // cx (size.y)
-        int j = firstSprOffset + 10;    // si (tracks position in original data)
+        int i = sprHeight;              // cx (size.y)
+        int j = sprOffset + 10;         // si (tracks position in original data)
         int k = 0;                      // di (tracks position in new data)
         int p = 0;                      // plane count (Mode X)
         while (p < 4) {
@@ -60,7 +59,7 @@ public class Main2 {
                 int b = sprBytes[j++];
 
                 if (b == 0) {                   // 0 == transparency
-                    k += (4 - (k % 4));         // TODO: the '4' must be a variable depending on the width
+                    k += (4 - (k % 4));
                     i--;
                 } else if (b > 0) {
                     do {
@@ -102,20 +101,20 @@ public class Main2 {
                         b = ~b + 1;             // neg al
                     } while (b != 0);
 
-                    k += (k % 4 != 0) ? (4 - (k % 4)) : 0;
+                    k += (k % 4 != 0) ? (4 - (k % 4)) : 0;      // prevents from adding 4 if k is "at the end of the plane"
                     i--;
                 }
             }
-            i = firstSprSizeY;                  // another full loop of size.y
+            i = sprHeight;                  // another full loop of size.y
             p++;                                // "select next plane"
             k = 0;                              // reset dest index (new plane)
         }
 
         byte[] sprite = mergePlanes(planes);
-        BufferedRgb888Image image = new BufferedRgb888Image(firstSprSizeX, firstSprSizeY);
-        for (int y = 0; y < firstSprSizeY; y++) {
-            for (int x = 0; x < firstSprSizeX; x++) {
-                image.setRgb888Pixel(x, y, getColor(sprite[firstSprSizeX * y + x], palBytes));
+        BufferedRgb888Image image = new BufferedRgb888Image(sprWidth, sprHeight);
+        for (int y = 0; y < sprHeight; y++) {
+            for (int x = 0; x < sprWidth; x++) {
+                image.setRgb888Pixel(x, y, getColor(sprite[sprWidth * y + x], palBytes));
             }
         }
 
